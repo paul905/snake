@@ -13,7 +13,7 @@ WINDOW_WIDTH = 600
 WINDOW_HIEGHT = 600
 BLOCK_SIZE = 30
 
-FPS = 10
+FPS = 9
 
 WHITE = (200,200,200)
 BLACK = (0,0,0)
@@ -22,6 +22,22 @@ SCREEN = pygame.display.set_mode((WINDOW_WIDTH,WINDOW_HIEGHT))
 SCREEN.fill(BLACK)
 SCREEN_x, SCREEN_y = SCREEN.get_size()
 CLOCK = pygame.time.Clock()
+
+# font object.
+# 1st parameter is the font file
+# 2nd parameter is size of the font
+font = pygame.font.Font('freesansbold.ttf', 30)
+
+# create a text surface object,
+# on which text is drawn on it.
+text = font.render('GAME OVER', True, "green", "blue")
+
+# create a rectangular object for the
+# text surface object
+textRect = text.get_rect()
+
+# set the center of the rectangular object.
+textRect.center = (WINDOW_WIDTH // 2, WINDOW_HIEGHT // 2)
 
 
 # grid    
@@ -39,10 +55,14 @@ def drawGrid(color):
             pygame.draw.rect(grid,color,rect,1)
     SCREEN.blit(grid,(0,0))
 
-def generate_food():
-    #TODO: food cannot be generated in cells occupided by snake 
-    food_x = random.randrange(0,WINDOW_WIDTH-BLOCK_SIZE,BLOCK_SIZE)
-    food_y = random.randrange(0,WINDOW_HIEGHT-BLOCK_SIZE,BLOCK_SIZE)
+def generate_food(snake: Snake):
+    #TODO: food cannot be generated in cells occupided by snake
+    snake_body = set(snake.body)
+    while True:
+        food_x = random.randrange(0,WINDOW_WIDTH-BLOCK_SIZE,BLOCK_SIZE)
+        food_y = random.randrange(0,WINDOW_HIEGHT-BLOCK_SIZE,BLOCK_SIZE)
+        if not (food_x,food_y) in snake_body:
+            break
     
     snake_t = pygame.Rect(food_x,food_y,BLOCK_SIZE,BLOCK_SIZE)
     pygame.draw.rect(SCREEN,"red",snake_t,0,3)
@@ -63,12 +83,12 @@ def move_up(snake :Snake):
     if snake.direction == Direction.DOWN :
         move_down(snake)
         return
-    if snake.head.getY() - BLOCK_SIZE < 0 :
-        x = snake.head.getX()
+    if snake.head[1] - BLOCK_SIZE < 0 :
+        x = snake.head[0]
         y = SCREEN_y - BLOCK_SIZE
     else:
-        x = snake.head.getX()
-        y = snake.head.getY() - BLOCK_SIZE
+        x = snake.head[0]
+        y = snake.head[1]- BLOCK_SIZE
 
     draw(snake,x,y)
     snake.direction = Direction.UP
@@ -77,12 +97,12 @@ def move_down(snake :Snake):
     if snake.direction == Direction.UP:
         move_up(snake)
         return
-    if snake.head.getY() + BLOCK_SIZE == SCREEN_y :
-        x = snake.head.getX()
+    if snake.head[1] + BLOCK_SIZE == SCREEN_y :
+        x = snake.head[0]
         y = 0
     else:
-        x = snake.head.getX()
-        y = snake.head.getY() + BLOCK_SIZE
+        x = snake.head[0]
+        y = snake.head[1] + BLOCK_SIZE
 
     draw(snake,x,y)
     snake.direction = Direction.DOWN
@@ -91,12 +111,12 @@ def move_left(snake :Snake):
     if snake.direction == Direction.RIGHT:
         move_right(snake)
         return
-    if snake.head.getX() - BLOCK_SIZE < 0 :
+    if snake.head[0] - BLOCK_SIZE < 0 :
         x = SCREEN_x - BLOCK_SIZE
-        y = snake.head.getY()
+        y = snake.head[1]
     else:
-        x = snake.head.getX() - BLOCK_SIZE
-        y = snake.head.getY()
+        x = snake.head[0] - BLOCK_SIZE
+        y = snake.head[1]
 
     draw(snake,x,y)
     snake.direction = Direction.LEFT
@@ -105,29 +125,30 @@ def move_right(snake :Snake):
     if snake.direction == Direction.LEFT :
         move_left(snake)
         return
-    if snake.head.getX() + BLOCK_SIZE == SCREEN_x :
+    if snake.head[0] + BLOCK_SIZE == SCREEN_x :
         x = 0
-        y = snake.head.getY()
+        y = snake.head[1]
     else:
-        x = snake.head.getX() + BLOCK_SIZE
-        y = snake.head.getY()
+        x = snake.head[0] + BLOCK_SIZE
+        y = snake.head[1]
 
     draw(snake,x,y)
     snake.direction = Direction.RIGHT
 ## CONSOLE
 
 def draw(snake:Snake,x,y):
+
     # color black tail element
     # remove tail 
-    tail_x = snake.tail.getX()
-    tail_y = snake.tail.getY()
+    tail_x = snake.tail[0]
+    tail_y = snake.tail[1]
 
     del snake.body[0]
     snake_t = pygame.Rect(tail_x,tail_y,BLOCK_SIZE,BLOCK_SIZE)
     pygame.draw.rect(SCREEN,"black",snake_t)
         
     # remove from headadd new element to the body and color it to green
-    snake.body.append(Cube(x,y))
+    snake.body.append((x,y))
     snake_h = pygame.Rect(x,y,BLOCK_SIZE,BLOCK_SIZE)
     pygame.draw.rect(SCREEN,"green",snake_h,0,2)
 
@@ -139,8 +160,8 @@ def draw(snake:Snake,x,y):
 
 def eat(snake :Snake, move):
      
-    x = snake.tail.getX()
-    y = snake.tail.getY()
+    x = snake.tail[0]
+    y = snake.tail[1]
 
     # add the new cube on the tail
     if snake.direction == Direction.UP:
@@ -152,28 +173,38 @@ def eat(snake :Snake, move):
     elif snake.direction == Direction.RIGHT:
         x = x - snake.block_size
 
-    snake.body.insert(0,Cube(x,y))
+    snake.body.insert(0,(x,y))
+
+
+def check_game_over(snake :Snake) -> bool:
+    return len(set(snake.body)) != len(snake.body)
+    
 
 def main():
     snake = Snake(WINDOW_WIDTH,WINDOW_HIEGHT,BLOCK_SIZE)
-    
     running = True
     next_move = move_right
-    food_x,food_y = generate_food()
-    gride = False
+    food_x,food_y = generate_food(snake)
     pause = False
+    game_over = False
+    gride = False
+    
+
     while running:
         CLOCK.tick(FPS)
-        if not pause :
+        if not game_over and not pause:
             next_move(snake)
+            game_over = check_game_over(snake)
+            if game_over:
+                SCREEN.blit(text, textRect)
+                pygame.display.flip()
 
         # TODO: GAME OVER check
         
-        if food_x == snake.head.getX() and food_y == snake.head.getY():
-            food_x,food_y = generate_food()
+        if food_x == snake.head[0] and food_y == snake.head[1]:
+            food_x,food_y = generate_food(snake)
             eat(snake,next_move)
             next_move(snake)
-            pygame.display.flip()
             continue
         
         for event in pygame.event.get():
@@ -184,7 +215,8 @@ def main():
                 sys.exit(0)
 
             # keydown
-            if event.type == pygame.KEYDOWN:
+            if not game_over and event.type == pygame.KEYDOWN:
+                
                 # arrows
                 if event.key == pygame.K_UP:
                     next_move = move_up
@@ -204,14 +236,7 @@ def main():
                         gride = False
                     else:
                          showGrid()
-                         gride = True 
-        #draw(snake)
-        #CLOCK.tick(FPS)
-
-
-            
-
-        
+                         gride = True       
 
 
 main()
