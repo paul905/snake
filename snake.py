@@ -1,5 +1,4 @@
 from direction_enum import Direction
-from cube import Cube
 
 class Snake:
 

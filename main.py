@@ -3,7 +3,6 @@ import sys
 import random
 from direction_enum import Direction
 from snake import Snake
-from cube import Cube
 
 from time import sleep
 
@@ -13,30 +12,20 @@ WINDOW_WIDTH = 600
 WINDOW_HIEGHT = 600
 BLOCK_SIZE = 30
 
-FPS = 9
+FPS = 10
 
 WHITE = (200,200,200)
-BLACK = (0,0,0)
+SCREEN_COLOR = (0,0,0)
 
 SCREEN = pygame.display.set_mode((WINDOW_WIDTH,WINDOW_HIEGHT))
-SCREEN.fill(BLACK)
+SCREEN.fill(SCREEN_COLOR)
 SCREEN_x, SCREEN_y = SCREEN.get_size()
 CLOCK = pygame.time.Clock()
 
-# font object.
-# 1st parameter is the font file
-# 2nd parameter is size of the font
+# Game Over text 
 font = pygame.font.Font('freesansbold.ttf', 30)
-
-# create a text surface object,
-# on which text is drawn on it.
 text = font.render('GAME OVER', True, "green", "blue")
-
-# create a rectangular object for the
-# text surface object
 textRect = text.get_rect()
-
-# set the center of the rectangular object.
 textRect.center = (WINDOW_WIDTH // 2, WINDOW_HIEGHT // 2)
 
 
@@ -45,7 +34,7 @@ def showGrid():
     drawGrid(WHITE)
 
 def hideGrid():
-    drawGrid(BLACK)
+    drawGrid(SCREEN_COLOR)
 
 def drawGrid(color):
     grid = pygame.surface.Surface((WINDOW_WIDTH, WINDOW_HIEGHT))
@@ -145,7 +134,7 @@ def draw(snake:Snake,x,y):
 
     del snake.body[0]
     snake_t = pygame.Rect(tail_x,tail_y,BLOCK_SIZE,BLOCK_SIZE)
-    pygame.draw.rect(SCREEN,"black",snake_t)
+    pygame.draw.rect(SCREEN,SCREEN_COLOR,snake_t)
         
     # remove from headadd new element to the body and color it to green
     snake.body.append((x,y))
@@ -191,15 +180,16 @@ def main():
     
 
     while running:
+       
         CLOCK.tick(FPS)
+
         if not game_over and not pause:
             next_move(snake)
             game_over = check_game_over(snake)
             if game_over:
                 SCREEN.blit(text, textRect)
                 pygame.display.flip()
-
-        # TODO: GAME OVER check
+                continue
         
         if food_x == snake.head[0] and food_y == snake.head[1]:
             food_x,food_y = generate_food(snake)
@@ -212,11 +202,10 @@ def main():
             # quit
             if event.type == pygame.QUIT:
                 pygame.quit()
-                sys.exit(0)
+                sys.exit()
 
             # keydown
             if not game_over and event.type == pygame.KEYDOWN:
-                
                 # arrows
                 if event.key == pygame.K_UP:
                     next_move = move_up
@@ -231,13 +220,9 @@ def main():
                 elif event.key == pygame.K_SPACE:
                     pause = not pause
                 elif event.key == pygame.K_g:
-                    if gride:
-                        hideGrid()
-                        gride = False
-                    else:
-                         showGrid()
-                         gride = True       
-
+                    gride = not gride 
+        if gride:
+            showGrid()
 
 main()
 
